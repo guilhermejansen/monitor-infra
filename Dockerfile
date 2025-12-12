@@ -39,7 +39,7 @@ FROM alpine:3.20
 LABEL org.opencontainers.image.title="Monitor-Infra Server"
 LABEL org.opencontainers.image.description="Servidor de monitoramento de infraestrutura VPS"
 LABEL org.opencontainers.image.vendor="Monitor-Infra"
-LABEL org.opencontainers.image.source="https://github.com/guilhermejansen/monitor-infra"
+LABEL org.opencontainers.image.source="https://github.com/Setpar-IA-Setup-Automatizado/monitor-infra"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Instalar runtime dependencies

@@ -22,7 +22,7 @@ permissions:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: guilhermejansen/monitor-infra
+  IMAGE_NAME: infraia/monitor-infra
 
 jobs:
   # ==========================================================================
@@ -155,7 +155,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: "1.23"
 
       - name: Install dependencies
         run: |

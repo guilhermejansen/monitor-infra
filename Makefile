@@ -9,7 +9,7 @@ LDFLAGS := -ldflags="-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_
 
 # Docker
 DOCKER_REGISTRY := docker.io
-DOCKER_IMAGE := guilhermejansen/monitor-infra
+DOCKER_IMAGE := infraia/monitor-infra
 DOCKER_TAG := $(VERSION)
 PLATFORMS := linux/amd64,linux/arm64
 

@@ -16,31 +16,27 @@
 # ============================================================================
 
 networks:
-  # Rede do Traefik (deve existir previamente)
-  traefik-public:
-    external: true
   # Rede interna do serviço
-  monitor-internal:
-    driver: overlay
-    attachable: true
+  network_public:
+    name: network_public
 
 volumes:
-  monitor-data:
-    driver: local
+  monitor-infra-data:
+    name: monitor-infra-data
+    external: true
 
 services:
   # ==========================================================================
   # MONITOR-INFRA SERVER
   # ==========================================================================
-  server:
-    image: guilhermejansen/monitor-infra:${MONITOR_VERSION:-latest}
+  monitor-infra-service:
+    image: infraia/monitor-infra:${MONITOR_VERSION:-latest}
 
     networks:
-      - traefik-public
-      - monitor-internal
+      - network_public
 
     volumes:
-      - monitor-data:/app/data
+      - monitor-infra-data:/app/data
 
     environment:
       # Token de autenticação (OBRIGATÓRIO)
@@ -66,10 +62,10 @@ services:
 
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 256M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
 
       restart_policy:
@@ -99,26 +95,26 @@ services:
         # ---------------------------------------------------------------------
         # HTTP Router (Redirect para HTTPS)
         # ---------------------------------------------------------------------
-        - "traefik.http.routers.monitor-http.rule=Host(`${MONITOR_DOMAIN:?Defina MONITOR_DOMAIN}`)"
-        - "traefik.http.routers.monitor-http.entrypoints=http"
-        - "traefik.http.routers.monitor-http.middlewares=https-redirect"
+        - "traefik.http.routers.monitor-infra-service-http.rule=Host(`${MONITOR_DOMAIN:?Defina MONITOR_DOMAIN}`)"
+        - "traefik.http.routers.monitor-infra-service-http.entrypoints=http"
+        - "traefik.http.routers.monitor-infra-service-http.middlewares=https-redirect"
 
         # ---------------------------------------------------------------------
         # HTTPS Router (Principal)
         # ---------------------------------------------------------------------
-        - "traefik.http.routers.monitor-https.rule=Host(`${MONITOR_DOMAIN}`)"
-        - "traefik.http.routers.monitor-https.entrypoints=https"
-        - "traefik.http.routers.monitor-https.tls=true"
-        - "traefik.http.routers.monitor-https.tls.certresolver=letsencrypt"
-        - "traefik.http.routers.monitor-https.service=monitor-service"
+        - "traefik.http.routers.monitor-infra-service-https.rule=Host(`${MONITOR_DOMAIN}`)"
+        - "traefik.http.routers.monitor-infra-service-https.entrypoints=https"
+        - "traefik.http.routers.monitor-infra-service-https.tls=true"
+        - "traefik.http.routers.monitor-infra-service-https.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.monitor-infra-service-https.service=monitor-infra-service"
 
         # ---------------------------------------------------------------------
         # Service
         # ---------------------------------------------------------------------
-        - "traefik.http.services.monitor-service.loadbalancer.server.port=8080"
-        - "traefik.http.services.monitor-service.loadbalancer.healthcheck.path=/api/health"
-        - "traefik.http.services.monitor-service.loadbalancer.healthcheck.interval=30s"
-        - "traefik.http.services.monitor-service.loadbalancer.healthcheck.timeout=5s"
+        - "traefik.http.services.monitor-infra-service.loadbalancer.server.port=8080"
+        - "traefik.http.services.monitor-infra-service.loadbalancer.healthcheck.path=/api/health"
+        - "traefik.http.services.monitor-infra-service.loadbalancer.healthcheck.interval=30s"
+        - "traefik.http.services.monitor-infra-service.loadbalancer.healthcheck.timeout=5s"
 
         # ---------------------------------------------------------------------
         # Middlewares
@@ -128,22 +124,22 @@ services:
         - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
 
         # Security Headers
-        - "traefik.http.middlewares.monitor-headers.headers.stsSeconds=31536000"
-        - "traefik.http.middlewares.monitor-headers.headers.stsIncludeSubdomains=true"
-        - "traefik.http.middlewares.monitor-headers.headers.stsPreload=true"
-        - "traefik.http.middlewares.monitor-headers.headers.forceSTSHeader=true"
-        - "traefik.http.middlewares.monitor-headers.headers.contentTypeNosniff=true"
-        - "traefik.http.middlewares.monitor-headers.headers.browserXssFilter=true"
-        - "traefik.http.middlewares.monitor-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
-        - "traefik.http.middlewares.monitor-headers.headers.customFrameOptionsValue=SAMEORIGIN"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.stsSeconds=31536000"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.stsIncludeSubdomains=true"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.stsPreload=true"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.forceSTSHeader=true"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.contentTypeNosniff=true"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.browserXssFilter=true"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+        - "traefik.http.middlewares.monitor-infra-service-headers.headers.customFrameOptionsValue=SAMEORIGIN"
 
         # Aplicar middlewares ao router HTTPS
-        - "traefik.http.routers.monitor-https.middlewares=monitor-headers"
+        - "traefik.http.routers.monitor-infra-service-https.middlewares=monitor-headers"
 
         # ---------------------------------------------------------------------
         # Compress (opcional - melhora performance)
         # ---------------------------------------------------------------------
-        - "traefik.http.middlewares.monitor-compress.compress=true"
+        - "traefik.http.middlewares.monitor-infra-service-compress.compress=true"
 
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
