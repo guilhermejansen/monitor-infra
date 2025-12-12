@@ -6,19 +6,15 @@
 # COMO USAR NO PORTAINER:
 # 1. Vá em Stacks > Add stack
 # 2. Cole este arquivo ou use "Repository" apontando para o GitHub
-# 3. Configure as variáveis de ambiente abaixo
+# 3. Configure as variáveis de ambiente no .env
 # 4. Deploy the stack
-#
-# VARIÁVEIS OBRIGATÓRIAS:
-# - MONITOR_DOMAIN: domínio do dashboard (ex: monitor.seudominio.com)
-# - MONITOR_AUTH_TOKEN: token de autenticação dos agents
 #
 # ============================================================================
 
 networks:
-  # Rede interna do serviço
   network_public:
     name: network_public
+    external: true
 
 volumes:
   monitor-infra-data:
@@ -30,7 +26,7 @@ services:
   # MONITOR-INFRA SERVER
   # ==========================================================================
   monitor-infra-service:
-    image: setupautomatizado/monitor-infra:${MONITOR_VERSION:-latest}
+    image: ghcr.io/guilhermejansen/monitor-infra:latest
 
     networks:
       - network_public
@@ -39,18 +35,15 @@ services:
       - monitor-infra-data:/app/data
 
     environment:
-      # Token de autenticação (OBRIGATÓRIO)
-      - AUTH_TOKEN=${MONITOR_AUTH_TOKEN:?Defina MONITOR_AUTH_TOKEN}
-      # Dias de retenção das métricas
-      - RETENTION_DAYS=${MONITOR_RETENTION_DAYS:-90}
-      # Timezone
-      - TZ=${TZ:-America/Sao_Paulo}
+      - AUTH_TOKEN=seu-token-secreto-aqui
+      - RETENTION_DAYS=90
+      - TZ=America/Sao_Paulo
 
     command:
       - --port=8080
       - --db=/app/data/monitor.db
-      - --token=${MONITOR_AUTH_TOKEN}
-      - --retention=${MONITOR_RETENTION_DAYS:-90}
+      - --token=seu-token-secreto-aqui
+      - --retention=90
 
     deploy:
       mode: replicated
@@ -90,23 +83,23 @@ services:
       labels:
         # Habilitar Traefik
         - "traefik.enable=true"
-        - "traefik.docker.network=traefik-public"
+        - "traefik.docker.network=network_public"
 
         # ---------------------------------------------------------------------
         # HTTP Router (Redirect para HTTPS)
         # ---------------------------------------------------------------------
-        - "traefik.http.routers.monitor-infra-service-http.rule=Host(`${MONITOR_DOMAIN:?Defina MONITOR_DOMAIN}`)"
-        - "traefik.http.routers.monitor-infra-service-http.entrypoints=http"
-        - "traefik.http.routers.monitor-infra-service-http.middlewares=https-redirect"
+        - "traefik.http.routers.monitor-infra-http.rule=Host(`monitor.seudominio.com`)"
+        - "traefik.http.routers.monitor-infra-http.entrypoints=http"
+        - "traefik.http.routers.monitor-infra-http.middlewares=https-redirect"
 
         # ---------------------------------------------------------------------
         # HTTPS Router (Principal)
         # ---------------------------------------------------------------------
-        - "traefik.http.routers.monitor-infra-service-https.rule=Host(`${MONITOR_DOMAIN}`)"
-        - "traefik.http.routers.monitor-infra-service-https.entrypoints=https"
-        - "traefik.http.routers.monitor-infra-service-https.tls=true"
-        - "traefik.http.routers.monitor-infra-service-https.tls.certresolver=letsencrypt"
-        - "traefik.http.routers.monitor-infra-service-https.service=monitor-infra-service"
+        - "traefik.http.routers.monitor-infra-https.rule=Host(`monitor.seudominio.com`)"
+        - "traefik.http.routers.monitor-infra-https.entrypoints=https"
+        - "traefik.http.routers.monitor-infra-https.tls=true"
+        - "traefik.http.routers.monitor-infra-https.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.monitor-infra-https.service=monitor-infra-service"
 
         # ---------------------------------------------------------------------
         # Service
@@ -124,22 +117,20 @@ services:
         - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
 
         # Security Headers
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.stsSeconds=31536000"
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.stsIncludeSubdomains=true"
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.stsPreload=true"
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.forceSTSHeader=true"
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.contentTypeNosniff=true"
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.browserXssFilter=true"
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
-        - "traefik.http.middlewares.monitor-infra-service-headers.headers.customFrameOptionsValue=SAMEORIGIN"
+        - "traefik.http.middlewares.monitor-headers.headers.stsSeconds=31536000"
+        - "traefik.http.middlewares.monitor-headers.headers.stsIncludeSubdomains=true"
+        - "traefik.http.middlewares.monitor-headers.headers.stsPreload=true"
+        - "traefik.http.middlewares.monitor-headers.headers.forceSTSHeader=true"
+        - "traefik.http.middlewares.monitor-headers.headers.contentTypeNosniff=true"
+        - "traefik.http.middlewares.monitor-headers.headers.browserXssFilter=true"
+        - "traefik.http.middlewares.monitor-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+        - "traefik.http.middlewares.monitor-headers.headers.customFrameOptionsValue=SAMEORIGIN"
 
         # Aplicar middlewares ao router HTTPS
-        - "traefik.http.routers.monitor-infra-service-https.middlewares=monitor-headers"
+        - "traefik.http.routers.monitor-infra-https.middlewares=monitor-headers"
 
-        # ---------------------------------------------------------------------
-        # Compress (opcional - melhora performance)
-        # ---------------------------------------------------------------------
-        - "traefik.http.middlewares.monitor-infra-service-compress.compress=true"
+        # Compress
+        - "traefik.http.middlewares.monitor-compress.compress=true"
 
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
@@ -147,15 +138,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-# ============================================================================
-# EXEMPLO DE .env PARA PORTAINER
-# ============================================================================
-#
-# MONITOR_DOMAIN=monitor.seudominio.com
-# MONITOR_AUTH_TOKEN=seu-token-secreto-aqui
-# MONITOR_RETENTION_DAYS=90
-# MONITOR_VERSION=latest
-# TZ=America/Sao_Paulo
-#
-# ============================================================================
