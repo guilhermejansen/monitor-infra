@@ -5,6 +5,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.0](https://github.com/guilhermejansen/monitor-infra/compare/v1.0.0...v1.1.0) (2025-12-12)
+
+
+### Features
+
+* **docker:** adiciona .env.example e simplifica docker-compose ([801270a](https://github.com/guilhermejansen/monitor-infra/commit/801270a73634b80814ea7963c2e3b84da8d6fe30))
+
+
+### Bug Fixes
+
+* **ci:** altera registry para GitHub Container Registry ([8ba1957](https://github.com/guilhermejansen/monitor-infra/commit/8ba1957cfb584f3adbb99c62427f6ed1b0a1c7f4))
+* **ci:** corrige nome da imagem para setupautomatizado/monitor-infra ([adb3dac](https://github.com/guilhermejansen/monitor-infra/commit/adb3daced2db5781b110b2381c4b4589de50f7ff))
+
 ## 1.0.0 (2025-12-12)
 
 
