@@ -38,7 +38,7 @@ docker run -d \
   -p 8080:8080 \
   -v monitor-data:/app/data \
   -e AUTH_TOKEN=seu-token-secreto \
-  infraia/monitor-infra:latest
+  setupautomatizado/monitor-infra:latest
 ```
 
 ### Docker Compose / Portainer

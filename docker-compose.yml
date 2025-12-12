@@ -30,7 +30,7 @@ services:
   # MONITOR-INFRA SERVER
   # ==========================================================================
   monitor-infra-service:
-    image: infraia/monitor-infra:${MONITOR_VERSION:-latest}
+    image: setupautomatizado/monitor-infra:${MONITOR_VERSION:-latest}
 
     networks:
       - network_public
