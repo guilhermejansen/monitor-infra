@@ -138,8 +138,8 @@ func (s *Storage) initSchema() error {
 
 // UpsertMachine cria ou atualiza uma máquina e retorna seu ID
 func (s *Storage) UpsertMachine(hostname, ip, groupName, swarmRole string) (int64, error) {
-	// Tentar inserir
-	result, err := s.db.Exec(`
+	// Primeiro, tenta inserir ou atualizar
+	_, err := s.db.Exec(`
 		INSERT INTO machines (hostname, ip, group_name, swarm_role, last_seen)
 		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(hostname) DO UPDATE SET
@@ -153,17 +153,11 @@ func (s *Storage) UpsertMachine(hostname, ip, groupName, swarmRole string) (int6
 		return 0, fmt.Errorf("erro ao upsert máquina: %w", err)
 	}
 
-	// Se foi insert, retorna o ID inserido
-	id, err := result.LastInsertId()
-	if err == nil && id > 0 {
-		return id, nil
-	}
-
-	// Se foi update, busca o ID existente
+	// Sempre busca o ID pelo hostname (mais confiável que LastInsertId com UPSERT)
 	var machineID int64
 	err = s.db.QueryRow("SELECT id FROM machines WHERE hostname = ?", hostname).Scan(&machineID)
 	if err != nil {
-		return 0, fmt.Errorf("erro ao buscar ID da máquina: %w", err)
+		return 0, fmt.Errorf("erro ao buscar ID da máquina '%s': %w", hostname, err)
 	}
 
 	return machineID, nil
@@ -177,7 +171,7 @@ func (s *Storage) InsertMetrics(machineID int64, m *Metrics) error {
 	`, machineID, m.CPUPercent, m.MemoryPercent, m.DiskPercent, m.DockerRunning, m.DockerStopped)
 
 	if err != nil {
-		return fmt.Errorf("erro ao inserir métricas: %w", err)
+		return fmt.Errorf("erro ao inserir métricas (machine_id=%d): %w", machineID, err)
 	}
 
 	return nil

@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build (compila nativamente em cada arquitetura)
 # -----------------------------------------------------------------------------
-FROM --platform=$TARGETPLATFORM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 ARG VERSION=dev
 
@@ -29,7 +29,7 @@ RUN CGO_ENABLED=1 go build -ldflags="-s -w -X main.Version=${VERSION}" \
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime
 # -----------------------------------------------------------------------------
-FROM --platform=$TARGETPLATFORM alpine:3.23
+FROM alpine:3.20
 
 # Labels OCI
 LABEL org.opencontainers.image.title="Monitor-Infra Server"
