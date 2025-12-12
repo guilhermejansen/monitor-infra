@@ -1,0 +1,7 @@
+package main
+
+// Version é a versão atual do monitor-infra
+// x-release-please-start-version
+const Version = "0.1.0"
+
+// x-release-please-end

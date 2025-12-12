@@ -1,0 +1,76 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "go",
+      "package-name": "monitor-infra",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "draft": false,
+      "prerelease": false,
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Funcionalidades",
+          "hidden": false
+        },
+        {
+          "type": "fix",
+          "section": "Correções",
+          "hidden": false
+        },
+        {
+          "type": "perf",
+          "section": "Performance",
+          "hidden": false
+        },
+        {
+          "type": "refactor",
+          "section": "Refatorações",
+          "hidden": false
+        },
+        {
+          "type": "docs",
+          "section": "Documentação",
+          "hidden": false
+        },
+        {
+          "type": "chore",
+          "section": "Manutenção",
+          "hidden": false
+        },
+        {
+          "type": "ci",
+          "section": "CI/CD",
+          "hidden": false
+        },
+        {
+          "type": "build",
+          "section": "Build",
+          "hidden": false
+        },
+        {
+          "type": "test",
+          "section": "Testes",
+          "hidden": true
+        },
+        {
+          "type": "style",
+          "section": "Estilo",
+          "hidden": true
+        }
+      ],
+      "extra-files": [
+        "version.go"
+      ]
+    }
+  },
+  "sequential-calls": false,
+  "group-pull-request-title-pattern": "chore: release ${version}",
+  "pull-request-title-pattern": "chore: release ${version}",
+  "pull-request-header": ":robot: Release automático gerado por release-please",
+  "separate-pull-requests": false
+}

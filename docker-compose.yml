@@ -1,0 +1,165 @@
+# ============================================================================
+# MONITOR-INFRA - Docker Stack para Portainer
+# Compatível com: Docker Swarm + Traefik v3
+# ============================================================================
+#
+# COMO USAR NO PORTAINER:
+# 1. Vá em Stacks > Add stack
+# 2. Cole este arquivo ou use "Repository" apontando para o GitHub
+# 3. Configure as variáveis de ambiente abaixo
+# 4. Deploy the stack
+#
+# VARIÁVEIS OBRIGATÓRIAS:
+# - MONITOR_DOMAIN: domínio do dashboard (ex: monitor.seudominio.com)
+# - MONITOR_AUTH_TOKEN: token de autenticação dos agents
+#
+# ============================================================================
+
+networks:
+  # Rede do Traefik (deve existir previamente)
+  traefik-public:
+    external: true
+  # Rede interna do serviço
+  monitor-internal:
+    driver: overlay
+    attachable: true
+
+volumes:
+  monitor-data:
+    driver: local
+
+services:
+  # ==========================================================================
+  # MONITOR-INFRA SERVER
+  # ==========================================================================
+  server:
+    image: guilhermejansen/monitor-infra:${MONITOR_VERSION:-latest}
+
+    networks:
+      - traefik-public
+      - monitor-internal
+
+    volumes:
+      - monitor-data:/app/data
+
+    environment:
+      # Token de autenticação (OBRIGATÓRIO)
+      - AUTH_TOKEN=${MONITOR_AUTH_TOKEN:?Defina MONITOR_AUTH_TOKEN}
+      # Dias de retenção das métricas
+      - RETENTION_DAYS=${MONITOR_RETENTION_DAYS:-90}
+      # Timezone
+      - TZ=${TZ:-America/Sao_Paulo}
+
+    command:
+      - --port=8080
+      - --db=/app/data/monitor.db
+      - --token=${MONITOR_AUTH_TOKEN}
+      - --retention=${MONITOR_RETENTION_DAYS:-90}
+
+    deploy:
+      mode: replicated
+      replicas: 1
+
+      placement:
+        constraints:
+          - node.role == manager
+
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+
+      # ========================================================================
+      # TRAEFIK V3 LABELS
+      # ========================================================================
+      labels:
+        # Habilitar Traefik
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik-public"
+
+        # ---------------------------------------------------------------------
+        # HTTP Router (Redirect para HTTPS)
+        # ---------------------------------------------------------------------
+        - "traefik.http.routers.monitor-http.rule=Host(`${MONITOR_DOMAIN:?Defina MONITOR_DOMAIN}`)"
+        - "traefik.http.routers.monitor-http.entrypoints=http"
+        - "traefik.http.routers.monitor-http.middlewares=https-redirect"
+
+        # ---------------------------------------------------------------------
+        # HTTPS Router (Principal)
+        # ---------------------------------------------------------------------
+        - "traefik.http.routers.monitor-https.rule=Host(`${MONITOR_DOMAIN}`)"
+        - "traefik.http.routers.monitor-https.entrypoints=https"
+        - "traefik.http.routers.monitor-https.tls=true"
+        - "traefik.http.routers.monitor-https.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.monitor-https.service=monitor-service"
+
+        # ---------------------------------------------------------------------
+        # Service
+        # ---------------------------------------------------------------------
+        - "traefik.http.services.monitor-service.loadbalancer.server.port=8080"
+        - "traefik.http.services.monitor-service.loadbalancer.healthcheck.path=/api/health"
+        - "traefik.http.services.monitor-service.loadbalancer.healthcheck.interval=30s"
+        - "traefik.http.services.monitor-service.loadbalancer.healthcheck.timeout=5s"
+
+        # ---------------------------------------------------------------------
+        # Middlewares
+        # ---------------------------------------------------------------------
+        # Redirect HTTP -> HTTPS
+        - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+
+        # Security Headers
+        - "traefik.http.middlewares.monitor-headers.headers.stsSeconds=31536000"
+        - "traefik.http.middlewares.monitor-headers.headers.stsIncludeSubdomains=true"
+        - "traefik.http.middlewares.monitor-headers.headers.stsPreload=true"
+        - "traefik.http.middlewares.monitor-headers.headers.forceSTSHeader=true"
+        - "traefik.http.middlewares.monitor-headers.headers.contentTypeNosniff=true"
+        - "traefik.http.middlewares.monitor-headers.headers.browserXssFilter=true"
+        - "traefik.http.middlewares.monitor-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+        - "traefik.http.middlewares.monitor-headers.headers.customFrameOptionsValue=SAMEORIGIN"
+
+        # Aplicar middlewares ao router HTTPS
+        - "traefik.http.routers.monitor-https.middlewares=monitor-headers"
+
+        # ---------------------------------------------------------------------
+        # Compress (opcional - melhora performance)
+        # ---------------------------------------------------------------------
+        - "traefik.http.middlewares.monitor-compress.compress=true"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+# ============================================================================
+# EXEMPLO DE .env PARA PORTAINER
+# ============================================================================
+#
+# MONITOR_DOMAIN=monitor.seudominio.com
+# MONITOR_AUTH_TOKEN=seu-token-secreto-aqui
+# MONITOR_RETENTION_DAYS=90
+# MONITOR_VERSION=latest
+# TZ=America/Sao_Paulo
+#
+# ============================================================================

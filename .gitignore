@@ -1,0 +1,42 @@
+# Binários
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Testes
+*.test
+coverage.out
+
+# Dados locais
+data/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporários
+*.tmp
+*.temp
+*.log
+
+# Dependências (vendor é opcional)
+# vendor/
+
+# Environment local
+.env
+.env.local
+*.local

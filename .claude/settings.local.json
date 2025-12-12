@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__directory_tree",
+      "WebFetch(domain:golang.org)",
+      "WebFetch(domain:pkg.go.dev)",
+      "WebFetch(domain:docs.docker.com)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "mcp__filesystem__write_file",
+      "Bash(go mod tidy:*)",
+      "Bash(CGO_ENABLED=1 go build:*)",
+      "Bash(CGO_ENABLED=0 go build:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
