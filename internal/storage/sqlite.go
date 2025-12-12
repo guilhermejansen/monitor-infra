@@ -16,15 +16,15 @@ type Storage struct {
 
 // Machine representa uma máquina cadastrada
 type Machine struct {
-	ID         int64     `json:"id"`
-	Hostname   string    `json:"hostname"`
-	IP         string    `json:"ip"`
-	GroupName  string    `json:"group"`
-	SwarmRole  string    `json:"swarm_role"`
-	FirstSeen  time.Time `json:"first_seen"`
-	LastSeen   time.Time `json:"last_seen"`
-	IsOnline   bool      `json:"is_online"`
-	Metrics    *Metrics  `json:"metrics,omitempty"`
+	ID        int64     `json:"id"`
+	Hostname  string    `json:"hostname"`
+	IP        string    `json:"ip"`
+	GroupName string    `json:"group"`
+	SwarmRole string    `json:"swarm_role"`
+	FirstSeen time.Time `json:"first_seen"`
+	LastSeen  time.Time `json:"last_seen"`
+	IsOnline  bool      `json:"is_online"`
+	Metrics   *Metrics  `json:"metrics,omitempty"`
 }
 
 // Metrics representa as métricas coletadas
