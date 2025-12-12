@@ -4,13 +4,10 @@
 # ============================================================================
 
 # -----------------------------------------------------------------------------
-# Stage 1: Build
+# Stage 1: Build (compila nativamente em cada arquitetura)
 # -----------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
+FROM --platform=$TARGETPLATFORM golang:1.24-alpine AS builder
 
-# Build arguments para multi-arch
-ARG TARGETOS
-ARG TARGETARCH
 ARG VERSION=dev
 
 # Instalar dependências de build (CGO para SQLite)
@@ -25,15 +22,14 @@ RUN go mod download
 # Copiar código fonte
 COPY . .
 
-# Build com CGO habilitado para SQLite
-RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -ldflags="-s -w -X main.Version=${VERSION}" \
+# Build com CGO habilitado para SQLite (compila nativamente)
+RUN CGO_ENABLED=1 go build -ldflags="-s -w -X main.Version=${VERSION}" \
     -o server ./cmd/server
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime
 # -----------------------------------------------------------------------------
-FROM alpine:3.20
+FROM --platform=$TARGETPLATFORM alpine:3.20
 
 # Labels OCI
 LABEL org.opencontainers.image.title="Monitor-Infra Server"
