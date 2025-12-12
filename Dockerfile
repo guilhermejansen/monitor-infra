@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build (compila nativamente em cada arquitetura)
 # -----------------------------------------------------------------------------
-FROM --platform=$TARGETPLATFORM golang:1.24-alpine AS builder
+FROM --platform=$TARGETPLATFORM golang:1.25-alpine AS builder
 
 ARG VERSION=dev
 
