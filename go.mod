@@ -1,6 +1,6 @@
 module monitor-infra
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/docker/docker v24.0.9+incompatible
@@ -21,7 +21,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/time v0.14.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.16.0 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 )
