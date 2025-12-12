@@ -1,0 +1,48 @@
+# ============================================================================
+# GREETINGS - Boas-vindas automáticas
+# ============================================================================
+# Envia mensagem de boas-vindas para novos contribuidores
+# Gera atividade e engajamento
+# ============================================================================
+
+name: Greetings
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  greeting:
+    name: Greet Contributors
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Greet new contributors
+        uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.PAT_TOKEN }}
+          issue-message: |
+            Olá @${{ github.actor }}! Obrigado por abrir sua primeira issue neste repositório.
+
+            Vamos analisar e responder o mais breve possível. Enquanto isso, confira nossa documentação no README.
+
+            Se for um bug, por favor inclua:
+            - Versão do sistema operacional
+            - Versão do Docker (se aplicável)
+            - Passos para reproduzir o problema
+
+          pr-message: |
+            Olá @${{ github.actor }}! Obrigado pelo seu primeiro Pull Request!
+
+            Vamos revisar suas alterações em breve. Por favor, certifique-se de que:
+            - O código segue os padrões do projeto
+            - Os testes passam (`make test`)
+            - O lint está ok (`make lint`)
+
+            Obrigado por contribuir!

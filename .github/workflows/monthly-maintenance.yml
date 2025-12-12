@@ -1,0 +1,59 @@
+# ============================================================================
+# MONTHLY MAINTENANCE - Manutenção mensal automática
+# ============================================================================
+# Executa tarefas de manutenção mensalmente
+# Gera commits e atividade regular no perfil
+# ============================================================================
+
+name: Monthly Maintenance
+
+on:
+  schedule:
+    # Executa no primeiro dia de cada mês às 10h
+    - cron: "0 13 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  maintenance:
+    name: Run Maintenance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Update Go dependencies
+        run: |
+          go get -u ./...
+          go mod tidy
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "guilhermejansen@users.noreply.github.com"
+          git config --local user.name "guilhermejansen"
+          git add .
+          git commit -m "chore(deps): atualização mensal de dependências
+
+          - Atualiza dependências Go para versões mais recentes
+          - Execução automática de manutenção mensal"
+          git push

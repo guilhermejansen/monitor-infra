@@ -1,0 +1,52 @@
+# ============================================================================
+# LABELER CONFIG - Regras para labels automáticos
+# ============================================================================
+
+# Go code
+go:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.go"
+
+# Docker
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "Dockerfile"
+          - "docker-compose*.yml"
+          - ".dockerignore"
+
+# CI/CD
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**/*"
+
+# Documentation
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**/*"
+
+# Configuration
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.yml"
+          - "*.yaml"
+          - "*.json"
+          - "*.toml"
+
+# Agent
+agent:
+  - changed-files:
+      - any-glob-to-any-file: "cmd/agent/**/*"
+
+# Server
+server:
+  - changed-files:
+      - any-glob-to-any-file: "cmd/server/**/*"
+
+# Internal packages
+internal:
+  - changed-files:
+      - any-glob-to-any-file: "internal/**/*"

@@ -1,0 +1,51 @@
+# ============================================================================
+# STALE - Gerenciamento automático de issues/PRs
+# ============================================================================
+# Marca e fecha issues/PRs sem atividade
+# Gera atividade automática no repositório
+# ============================================================================
+
+name: Stale Issues and PRs
+
+on:
+  schedule:
+    # Executa diariamente às 2h (gera atividade diária)
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Mark Stale
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Mark stale issues and PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.PAT_TOKEN }}
+
+          # Issues
+          stale-issue-message: |
+            Esta issue está inativa há 30 dias. Será fechada automaticamente em 7 dias se não houver atividade.
+            Se ainda for relevante, por favor comente para mantê-la aberta.
+          stale-issue-label: "stale"
+          days-before-issue-stale: 30
+          days-before-issue-close: 7
+          exempt-issue-labels: "pinned,security,bug,enhancement"
+
+          # Pull Requests
+          stale-pr-message: |
+            Este PR está inativo há 14 dias. Será fechado automaticamente em 7 dias se não houver atividade.
+            Se ainda for relevante, por favor atualize ou comente para mantê-lo aberto.
+          stale-pr-label: "stale"
+          days-before-pr-stale: 14
+          days-before-pr-close: 7
+          exempt-pr-labels: "pinned,security,wip"
+
+          # Geral
+          operations-per-run: 100
+          remove-stale-when-updated: true
