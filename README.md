@@ -1,5 +1,12 @@
 # Monitor-Infra
 
+[![CI](https://github.com/guilhermejansen/monitor-infra/actions/workflows/ci.yml/badge.svg)](https://github.com/guilhermejansen/monitor-infra/actions/workflows/ci.yml)
+[![Release](https://github.com/guilhermejansen/monitor-infra/actions/workflows/release.yml/badge.svg)](https://github.com/guilhermejansen/monitor-infra/actions/workflows/release.yml)
+[![CodeQL](https://github.com/guilhermejansen/monitor-infra/actions/workflows/codeql.yml/badge.svg)](https://github.com/guilhermejansen/monitor-infra/actions/workflows/codeql.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/guilhermejansen/monitor-infra)](https://go.dev/)
+[![License](https://img.shields.io/github/license/guilhermejansen/monitor-infra)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/guilhermejansen/monitor-infra)](https://github.com/guilhermejansen/monitor-infra/releases)
+
 Sistema de monitoramento de infraestrutura VPS com suporte a Docker Swarm.
 
 ## Funcionalidades
