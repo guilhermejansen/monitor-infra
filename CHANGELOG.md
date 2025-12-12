@@ -5,6 +5,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.1](https://github.com/guilhermejansen/monitor-infra/compare/v1.1.0...v1.1.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* **ci:** usa PAT_TOKEN para commits do Release Please ([6b4a7ac](https://github.com/guilhermejansen/monitor-infra/commit/6b4a7ac5bb9de8e4107bc87e0a45559d9ed854e4))
+* **docker:** corrige build multi-arch com CGO ([e563c37](https://github.com/guilhermejansen/monitor-infra/commit/e563c37406f574779ab58a55660f737264ce6cd0))
+
 ## [1.1.0](https://github.com/guilhermejansen/monitor-infra/compare/v1.0.0...v1.1.0) (2025-12-12)
 
 
