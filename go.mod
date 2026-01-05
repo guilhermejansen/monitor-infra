@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/docker/docker v28.5.2+incompatible
-	github.com/mattn/go-sqlite3 v1.14.32
+	github.com/mattn/go-sqlite3 v1.14.33
 )
 
 require (
