@@ -5,6 +5,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.2.1](https://github.com/guilhermejansen/monitor-infra/compare/v1.2.0...v1.2.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* **ci:** altera publicação para DockerHub ([8ef3662](https://github.com/guilhermejansen/monitor-infra/commit/8ef366298d2a7293fffe6d12eea22bb014fa5366))
+* **ci:** corrige publicação de imagem Docker e bugs ([abae90d](https://github.com/guilhermejansen/monitor-infra/commit/abae90d7a18ecea59a906fe6af33a7de3fda29f3))
+
 ## [1.2.0](https://github.com/guilhermejansen/monitor-infra/compare/v1.1.1...v1.2.0) (2025-12-12)
 
 
