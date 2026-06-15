@@ -29,7 +29,7 @@ RUN CGO_ENABLED=1 go build -ldflags="-s -w -X main.Version=${VERSION}" \
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime
 # -----------------------------------------------------------------------------
-FROM alpine:3.23
+FROM alpine:3.24
 
 # Labels OCI
 LABEL org.opencontainers.image.title="Monitor-Infra Server"
