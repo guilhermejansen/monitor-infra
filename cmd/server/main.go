@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/json"
 	"flag"
@@ -192,10 +191,11 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			} else if user, password, ok := r.BasicAuth(); ok && user == "monitor" && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
 				supplied = password
 			}
-			// Hash first to compare fixed-length buffers, including wrong-length tokens.
-			expected := sha256.Sum256([]byte(s.config.Token))
-			actual := sha256.Sum256([]byte(supplied))
-			if subtle.ConstantTimeCompare(expected[:], actual[:]) == 1 {
+			// Tokens must be random and fixed-length. Comparison is constant-time
+			// for equal lengths; a length mismatch is observable and rejected early.
+			// The outer guard and this guard deny blank config/credentials first.
+			if strings.TrimSpace(supplied) != "" &&
+				subtle.ConstantTimeCompare([]byte(s.config.Token), []byte(supplied)) == 1 {
 				next(w, r)
 				return
 			}

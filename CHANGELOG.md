@@ -11,7 +11,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 - Mantém `/api/health` público com apenas `{"status":"ok"}` para probes Docker/Traefik, sem versão ou dados de máquinas.
 - Protege todas as consultas de dados da API e o painel, preservando Bearer dos agents; painel e API aceitam Basic (usuário `monitor`, senha igual ao token).
-- Recusa token vazio por padrão e compara hashes de token em tempo constante. Modo `--insecure-dev` explícito limita listener e clientes ao loopback.
+- Recusa token vazio por padrão e compara diretamente o token em tempo constante para comprimentos iguais. O comprimento é observável; o contrato é um token aleatório de comprimento fixo. Modo `--insecure-dev` explícito limita listener e clientes ao loopback.
 - Remove manutenção mensal com commit/push e aprovação/merge automáticos; housekeeping usa `github.token`. Dependabot, CI, CodeQL e release permanecem.
 
 ## [1.2.0](https://github.com/guilhermejansen/monitor-infra/compare/v1.1.1...v1.2.0) (2025-12-12)

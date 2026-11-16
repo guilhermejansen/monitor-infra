@@ -121,6 +121,23 @@ func securityServe(t *testing.T, server *Server, req *http.Request, want int) *h
 	return recorder
 }
 
+func assertSecurityMetricsUnchanged(t *testing.T, fixture securityFixture) {
+	t.Helper()
+	machines, err := fixture.server.storage.GetMachinesWithMetrics()
+	if err != nil || len(machines) != 1 {
+		t.Fatal("rejected credentials must not create or delete machines")
+	}
+	machine := machines[0]
+	if machine.ID != fixture.machineID || machine.Hostname != "security-seeded-agent" ||
+		machine.IP != "192.0.2.1" || machine.Metrics == nil || machine.Metrics.CPUPercent != 12.5 {
+		t.Fatal("rejected credentials must not modify the seeded machine or its metrics")
+	}
+	history, err := fixture.server.storage.GetMetricsHistory(fixture.machineID, 1)
+	if err != nil || len(history) != 1 {
+		t.Fatal("rejected credentials must not append or remove stored metrics")
+	}
+}
+
 func TestSecurityAllReadRoutesRequireAuthentication(t *testing.T) {
 	token := securityToken(t)
 	fixture := newSecurityFixture(t, token, false)
@@ -129,11 +146,17 @@ func TestSecurityAllReadRoutesRequireAuthentication(t *testing.T) {
 		auth string
 	}{
 		{"missing", ""},
+		{"empty-bearer", "Bearer "},
+		{"whitespace-bearer", "Bearer  \t "},
 		{"wrong-bearer", "Bearer " + securityToken(t)},
 		{"short-bearer", "Bearer wrong"},
+		{"long-bearer", "Bearer " + token + "x"},
 		{"bare-token", token},
 		{"malformed-basic", "Basic !!!"},
 		{"wrong-basic-password", securityBasic("monitor", securityToken(t))},
+		{"short-basic-password", securityBasic("monitor", "short")},
+		{"long-basic-password", securityBasic("monitor", token+"x")},
+		{"whitespace-basic-password", securityBasic("monitor", " \t ")},
 		{"wrong-basic-user", securityBasic("other", token)},
 		{"empty-basic-password", securityBasic("monitor", "")},
 	}
@@ -154,6 +177,7 @@ func TestSecurityAllReadRoutesRequireAuthentication(t *testing.T) {
 			}
 		})
 	}
+	assertSecurityMetricsUnchanged(t, fixture)
 }
 
 func TestSecurityReadAuthenticationPositiveControls(t *testing.T) {
@@ -217,6 +241,10 @@ func TestSecurityHealthProbeRemainsPublicAndMinimal(t *testing.T) {
 }
 
 func TestSecurityBlankTokenFailsClosedByDefault(t *testing.T) {
+	nonemptyToken := securityToken(t)
+	// Target the existing machine as well as the creation attempts below: a
+	// rejected request must not update a row or append metrics to its history.
+	body := []byte(`{"hostname":"security-seeded-agent","ip":"192.0.2.99","cpu_percent":99}`)
 	for _, token := range []string{"", " \t "} {
 		name := "empty"
 		if token != "" {
@@ -226,13 +254,26 @@ func TestSecurityBlankTokenFailsClosedByDefault(t *testing.T) {
 			fixture := newSecurityFixture(t, token, false)
 			for _, remote := range []string{"127.0.0.1:4567", "[::1]:4567", "198.51.100.10:4567"} {
 				for _, route := range fixture.readRoutes() {
-					for _, authorization := range []string{"", "Bearer " + token, securityBasic("monitor", token)} {
+					for _, authorization := range []string{
+						"",
+						"Bearer ",
+						"Bearer " + token,
+						"Bearer " + nonemptyToken,
+						securityBasic("monitor", token),
+						securityBasic("monitor", nonemptyToken),
+					} {
 						req := securityRequest(http.MethodGet, route.path, remote, authorization, nil)
 						securityServe(t, fixture.server, req, http.StatusUnauthorized)
 					}
 				}
-				req := securityRequest(http.MethodPost, "/api/metrics", remote, "", []byte(`{"hostname":"blocked-agent"}`))
-				securityServe(t, fixture.server, req, http.StatusUnauthorized)
+				for _, authorization := range []string{
+					"", "Bearer ", "Bearer " + token, "Bearer " + nonemptyToken,
+					securityBasic("monitor", token), securityBasic("monitor", nonemptyToken),
+				} {
+					req := securityRequest(http.MethodPost, "/api/metrics", remote, authorization, body)
+					securityServe(t, fixture.server, req, http.StatusUnauthorized)
+					assertSecurityMetricsUnchanged(t, fixture)
+				}
 			}
 		})
 	}
@@ -271,13 +312,34 @@ func TestSecurityAgentMetricsStillRequireBearerAndPersist(t *testing.T) {
 	token := securityToken(t)
 	fixture := newSecurityFixture(t, token, false)
 	body := []byte(`{"hostname":"security-new-agent","ip":"192.0.2.2","group":"test","swarm_role":"none","cpu_percent":37.5}`)
-	for _, authorization := range []string{"", "Bearer wrong", securityBasic("monitor", token)} {
-		req := securityRequest(http.MethodPost, "/api/metrics", "198.51.100.10:4567", authorization, body)
-		securityServe(t, fixture.server, req, http.StatusUnauthorized)
+	for _, credential := range []struct {
+		name string
+		auth string
+	}{
+		{"missing", ""},
+		{"empty-bearer", "Bearer "},
+		{"whitespace-bearer", "Bearer  \t "},
+		{"wrong-bearer", "Bearer " + securityToken(t)},
+		{"short-bearer", "Bearer wrong"},
+		{"long-bearer", "Bearer " + token + "x"},
+		{"basic-valid-read-only", securityBasic("monitor", token)},
+		{"basic-empty", securityBasic("monitor", "")},
+		{"basic-whitespace", securityBasic("monitor", " \t ")},
+		{"basic-wrong", securityBasic("monitor", securityToken(t))},
+		{"basic-short", securityBasic("monitor", "short")},
+		{"basic-long", securityBasic("monitor", token+"x")},
+	} {
+		t.Run(credential.name, func(t *testing.T) {
+			req := securityRequest(http.MethodPost, "/api/metrics", "198.51.100.10:4567", credential.auth, body)
+			securityServe(t, fixture.server, req, http.StatusUnauthorized)
+			assertSecurityMetricsUnchanged(t, fixture)
+		})
 	}
-	machines, err := fixture.server.storage.GetMachinesWithMetrics()
-	if err != nil || len(machines) != 1 {
-		t.Fatal("unauthorized metric posts must not create machines")
+	// Browser Basic credentials remain read-only, including unsafe methods.
+	for _, method := range []string{http.MethodPut, http.MethodPatch, http.MethodDelete} {
+		req := securityRequest(method, "/api/metrics", "198.51.100.10:4567", securityBasic("monitor", token), body)
+		securityServe(t, fixture.server, req, http.StatusUnauthorized)
+		assertSecurityMetricsUnchanged(t, fixture)
 	}
 	req := securityRequest(http.MethodPost, "/api/metrics", "198.51.100.10:4567", "Bearer "+token, body)
 	response := securityServe(t, fixture.server, req, http.StatusCreated)
@@ -295,11 +357,6 @@ func TestSecurityAgentMetricsStillRequireBearerAndPersist(t *testing.T) {
 	history, err := fixture.server.storage.GetMetricsHistory(receipt.MachineID, 1)
 	if err != nil || len(history) != 1 {
 		t.Fatal("authenticated metric post must persist one metrics record")
-	}
-	// Verify a browser's Basic credentials cannot authorize unsafe API methods.
-	for _, method := range []string{http.MethodPut, http.MethodPatch, http.MethodDelete} {
-		req := securityRequest(method, "/api/metrics", "198.51.100.10:4567", securityBasic("monitor", token), body)
-		securityServe(t, fixture.server, req, http.StatusUnauthorized)
 	}
 }
 
