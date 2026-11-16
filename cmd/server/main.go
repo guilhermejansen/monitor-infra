@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,6 +32,7 @@ type Config struct {
 	DBPath        string
 	Token         string
 	RetentionDays int
+	InsecureDev   bool
 }
 
 // Server representa o servidor HTTP
@@ -45,6 +48,7 @@ func main() {
 	dbPath := flag.String("db", getEnv("DB_PATH", "./data/monitor.db"), "Caminho do banco de dados SQLite")
 	token := flag.String("token", getEnv("AUTH_TOKEN", ""), "Token de autenticação")
 	retentionDays := flag.Int("retention", getEnvInt("RETENTION_DAYS", 90), "Dias de retenção de métricas")
+	insecureDev := flag.Bool("insecure-dev", false, "Desativar autenticação somente para desenvolvimento em loopback")
 	version := flag.Bool("version", false, "Mostrar versão")
 
 	flag.Parse()
@@ -59,6 +63,11 @@ func main() {
 		DBPath:        *dbPath,
 		Token:         *token,
 		RetentionDays: *retentionDays,
+		InsecureDev:   *insecureDev,
+	}
+
+	if strings.TrimSpace(config.Token) == "" && !config.InsecureDev {
+		log.Fatal("AUTH_TOKEN/--token é obrigatório; --insecure-dev é apenas para desenvolvimento local")
 	}
 
 	// Criar diretório do banco se não existir
@@ -94,9 +103,15 @@ func main() {
 	// Registrar rotas
 	server.registerRoutes()
 
+	// O modo sem autenticação nunca escuta fora do loopback.
+	address := fmt.Sprintf(":%d", config.Port)
+	if config.InsecureDev {
+		address = fmt.Sprintf("127.0.0.1:%d", config.Port)
+	}
+
 	// Configurar HTTP server
 	httpServer := &http.Server{
-		Addr:         fmt.Sprintf(":%d", config.Port),
+		Addr:         address,
 		Handler:      server.mux,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -106,10 +121,10 @@ func main() {
 	// Iniciar servidor em goroutine
 	go func() {
 		log.Printf("Monitor-Infra Server v%s iniciando na porta %d...", Version, config.Port)
-		if config.Token != "" {
+		if !config.InsecureDev {
 			log.Println("Autenticação via token: ATIVADA")
 		} else {
-			log.Println("Autenticação via token: DESATIVADA")
+			log.Println("AVISO: --insecure-dev, sem autenticação, somente em loopback")
 		}
 		log.Printf("Dashboard: http://localhost:%d", config.Port)
 
@@ -141,9 +156,10 @@ func main() {
 func (s *Server) registerRoutes() {
 	// API endpoints
 	s.mux.HandleFunc("/api/metrics", s.authMiddleware(s.handleMetrics))
-	s.mux.HandleFunc("/api/machines", s.handleMachines)
-	s.mux.HandleFunc("/api/machines/", s.handleMachineDetail)
-	s.mux.HandleFunc("/api/stats", s.handleStats)
+	s.mux.HandleFunc("/api/machines", s.authMiddleware(s.handleMachines))
+	s.mux.HandleFunc("/api/machines/", s.authMiddleware(s.handleMachineDetail))
+	s.mux.HandleFunc("/api/stats", s.authMiddleware(s.handleStats))
+	// Public liveness only: Docker and Traefik probes send no credentials.
 	s.mux.HandleFunc("/api/health", s.handleHealth)
 
 	// Downloads e instalação
@@ -151,28 +167,46 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/download/", s.handleDownload)
 
 	// Dashboard
-	s.mux.HandleFunc("/", s.handleDashboard)
+	s.mux.HandleFunc("/", s.authMiddleware(s.handleDashboard))
 }
 
-// authMiddleware verifica o token de autenticação
+// authMiddleware protege métricas, consultas e painel. Basic permite que o
+// navegador reutilize as credenciais do painel nos fetches same-origin da API.
 func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Se não há token configurado, permitir acesso
-		if s.config.Token == "" {
-			next(w, r)
-			return
+		w.Header().Set("Cache-Control", "no-store")
+		if s.config.InsecureDev {
+			host, _, err := net.SplitHostPort(r.RemoteAddr)
+			ip := net.ParseIP(host)
+			// Não confiar em X-Forwarded-For ou outros headers de proxy.
+			if err == nil && ip != nil && ip.IsLoopback() {
+				next(w, r)
+				return
+			}
+		} else if strings.TrimSpace(s.config.Token) != "" {
+			var supplied string
+			auth := r.Header.Get("Authorization")
+			if len(auth) >= 7 && strings.EqualFold(auth[:7], "Bearer ") {
+				supplied = auth[7:]
+			} else if user, password, ok := r.BasicAuth(); ok && user == "monitor" && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
+				supplied = password
+			}
+			// Tokens must be random and fixed-length. Comparison is constant-time
+			// for equal lengths; a length mismatch is observable and rejected early.
+			// The outer guard and this guard deny blank config/credentials first.
+			if strings.TrimSpace(supplied) != "" &&
+				subtle.ConstantTimeCompare([]byte(s.config.Token), []byte(supplied)) == 1 {
+				next(w, r)
+				return
+			}
 		}
 
-		// Verificar header Authorization
-		auth := r.Header.Get("Authorization")
-		expectedAuth := "Bearer " + s.config.Token
-
-		if auth != expectedAuth {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+		if !strings.HasPrefix(r.URL.Path, "/api/") {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Monitor-Infra", charset="UTF-8"`)
+		} else {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="Monitor-Infra"`)
 		}
-
-		next(w, r)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	}
 }
 
@@ -319,8 +353,7 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-		"version": Version,
+		"status": "ok",
 	})
 }
 
