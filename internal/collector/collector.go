@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -227,7 +227,7 @@ func (c *Collector) CollectDocker() (running, stopped int, swarmRole string, err
 	defer cancel()
 
 	// Listar todos os containers (incluindo parados)
-	containers, err := c.dockerClient.ContainerList(ctx, types.ContainerListOptions{All: true})
+	containers, err := c.dockerClient.ContainerList(ctx, container.ListOptions{All: true})
 	if err != nil {
 		return 0, 0, "none", fmt.Errorf("erro ao listar containers: %w", err)
 	}
@@ -267,7 +267,7 @@ func (c *Collector) GetContainerList() ([]map[string]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	containers, err := c.dockerClient.ContainerList(ctx, types.ContainerListOptions{All: true})
+	containers, err := c.dockerClient.ContainerList(ctx, container.ListOptions{All: true})
 	if err != nil {
 		return nil, err
 	}
