@@ -160,7 +160,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/machines", s.authMiddleware(s.handleMachines))
 	s.mux.HandleFunc("/api/machines/", s.authMiddleware(s.handleMachineDetail))
 	s.mux.HandleFunc("/api/stats", s.authMiddleware(s.handleStats))
-	s.mux.HandleFunc("/api/health", s.authMiddleware(s.handleHealth))
+	// Public liveness only: Docker and Traefik probes send no credentials.
+	s.mux.HandleFunc("/api/health", s.handleHealth)
 
 	// Downloads e instalação
 	s.mux.HandleFunc("/install.sh", s.handleInstallScript)
@@ -352,8 +353,7 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-		"version": Version,
+		"status": "ok",
 	})
 }
 

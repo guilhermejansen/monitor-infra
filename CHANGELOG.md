@@ -9,7 +9,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### Segurança
 
-- Protege todas as consultas da API e o painel, preservando Bearer dos agents; painel e API aceitam Basic (usuário `monitor`, senha igual ao token).
+- Mantém `/api/health` público com apenas `{"status":"ok"}` para probes Docker/Traefik, sem versão ou dados de máquinas.
+- Protege todas as consultas de dados da API e o painel, preservando Bearer dos agents; painel e API aceitam Basic (usuário `monitor`, senha igual ao token).
 - Recusa token vazio por padrão e compara hashes de token em tempo constante. Modo `--insecure-dev` explícito limita listener e clientes ao loopback.
 - Remove manutenção mensal com commit/push e aprovação/merge automáticos; housekeeping usa `github.token`. Dependabot, CI, CodeQL e release permanecem.
 

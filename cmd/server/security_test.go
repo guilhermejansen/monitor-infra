@@ -79,7 +79,6 @@ func (f securityFixture) readRoutes() []struct {
 		code int
 	}{
 		{"/", http.StatusOK},
-		{"/api/health", http.StatusOK},
 		{"/api/machines", http.StatusOK},
 		{fmt.Sprintf("/api/machines/%d", f.machineID), http.StatusOK},
 		{fmt.Sprintf("/api/machines/%d/metrics?hours=1", f.machineID), http.StatusOK},
@@ -87,6 +86,8 @@ func (f securityFixture) readRoutes() []struct {
 		{"/api/metrics", http.StatusMethodNotAllowed},
 		{"/api/", http.StatusNotFound},
 		{"/api/unknown", http.StatusNotFound},
+		{"/api/health/", http.StatusNotFound},
+		{"/api/health/extra", http.StatusNotFound},
 	}
 }
 
@@ -166,9 +167,52 @@ func TestSecurityReadAuthenticationPositiveControls(t *testing.T) {
 			securityServe(t, fixture.server, req, route.code)
 		})
 	}
-	for _, route := range []string{"/", "/api/health"} {
-		req := securityRequest(http.MethodHead, route, "198.51.100.10:4567", securityBasic("monitor", token), nil)
-		securityServe(t, fixture.server, req, http.StatusOK)
+	req := securityRequest(http.MethodHead, "/", "198.51.100.10:4567", securityBasic("monitor", token), nil)
+	securityServe(t, fixture.server, req, http.StatusOK)
+}
+
+func TestSecurityHealthProbeRemainsPublicAndMinimal(t *testing.T) {
+	configuredToken := securityToken(t)
+	for _, configuration := range []struct {
+		name  string
+		token string
+	}{
+		{"empty-token", ""},
+		{"whitespace-token", " \t "},
+		{"configured-token", configuredToken},
+	} {
+		for _, insecureDev := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/dev=%t", configuration.name, insecureDev), func(t *testing.T) {
+				fixture := newSecurityFixture(t, configuration.token, insecureDev)
+				for _, remote := range []string{"127.0.0.1:4567", "198.51.100.10:4567"} {
+					for _, authorization := range []string{
+						"",
+						"Bearer wrong",
+						"Bearer " + configuredToken,
+						"Basic !!!",
+						securityBasic("monitor", "wrong"),
+						securityBasic("monitor", configuredToken),
+					} {
+						req := securityRequest(http.MethodGet, "/api/health", remote, authorization, nil)
+						response := securityServe(t, fixture.server, req, http.StatusOK)
+						// The public probe may expose liveness only, including when
+						// machines exist. Never print an unexpected response body.
+						if strings.TrimSpace(response.Body.String()) != `{"status":"ok"}` {
+							t.Error("public health must return only the minimal status object")
+						}
+						if !strings.HasPrefix(response.Header().Get("Content-Type"), "application/json") {
+							t.Error("public health must return JSON")
+						}
+						if response.Header().Get("WWW-Authenticate") != "" {
+							t.Error("public probe must not challenge for authentication")
+						}
+					}
+					// Infrastructure probes use GET today; HEAD must remain public too.
+					req := securityRequest(http.MethodHead, "/api/health", remote, "", nil)
+					securityServe(t, fixture.server, req, http.StatusOK)
+				}
+			})
+		}
 	}
 }
 

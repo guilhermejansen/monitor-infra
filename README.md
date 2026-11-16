@@ -66,7 +66,7 @@ curl -sSL https://seu-servidor/install.sh | bash -s -- \
 ### Autenticação e migração
 
 O servidor agora exige `AUTH_TOKEN` (ou `--token`) não vazio e recusa iniciar sem
-esse valor. Todas as rotas `/api/*`, incluindo o health check, e o painel `/`
+esse valor. Todas as rotas de dados `/api/*` e o painel `/`
 exigem autenticação. Configure um token aleatório longo no servidor e o mesmo
 valor em cada agent. Use HTTPS na rede: Bearer e Basic não cifram credenciais.
 
@@ -78,8 +78,11 @@ credencial Basic em cache; feche a sessão do navegador ao terminar num computad
 compartilhado. Respostas protegidas usam `Cache-Control: no-store`.
 
 Quem operava sem token deve configurar o segredo no servidor **e em todos os
-agents** antes de reiniciar. Atualize probes de `/api/health` e consumidores de
-GET para enviar Bearer. Consultas sem credencial recebem 401. Os endpoints de
+agents** antes de reiniciar. Atualize consumidores de GET de dados para enviar Bearer. Consultas de dados
+sem credencial recebem 401. A exceção pública é `/api/health`: retorna somente
+`{"status":"ok"}`, sem versão, métricas ou identificação de máquinas. Os probes
+do Dockerfile, do container no Compose e do Traefik continuam sem Authorization
+e compatíveis com esse endpoint mínimo; não use as rotas de dados como probe. Os endpoints de
 instalação `/install.sh` e de binários `/download/*` continuam públicos, sem
 acesso às métricas.
 
