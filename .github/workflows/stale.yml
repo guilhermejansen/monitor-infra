@@ -2,14 +2,12 @@
 # STALE - Gerenciamento automático de issues/PRs
 # ============================================================================
 # Marca e fecha issues/PRs sem atividade
-# Gera atividade automática no repositório
 # ============================================================================
 
 name: Stale Issues and PRs
 
 on:
   schedule:
-    # Executa diariamente às 2h (gera atividade diária)
     - cron: "0 5 * * *"
   workflow_dispatch:
 
@@ -26,7 +24,7 @@ jobs:
       - name: Mark stale issues and PRs
         uses: actions/stale@v9
         with:
-          repo-token: ${{ secrets.PAT_TOKEN }}
+          repo-token: ${{ github.token }}
 
           # Issues
           stale-issue-message: |

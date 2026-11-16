@@ -2,7 +2,6 @@
 # DEPENDABOT - Atualizações automáticas de dependências
 # ============================================================================
 # Cria PRs automaticamente quando há atualizações disponíveis
-# Cada PR mergeado conta como contribuição no seu perfil
 # ============================================================================
 
 version: 2

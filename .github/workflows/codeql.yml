@@ -2,7 +2,6 @@
 # CODEQL - Análise de Segurança
 # ============================================================================
 # Analisa código em busca de vulnerabilidades
-# Gera badge de segurança e contribuições no perfil
 # ============================================================================
 
 name: CodeQL Security Analysis
@@ -13,7 +12,6 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Executa toda segunda às 10h (gera atividade semanal)
     - cron: "0 13 * * 1"
 
 permissions:

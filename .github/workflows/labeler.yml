@@ -2,7 +2,6 @@
 # LABELER - Labels automáticos em PRs
 # ============================================================================
 # Adiciona labels automaticamente baseado nos arquivos modificados
-# Gera atividade em cada PR
 # ============================================================================
 
 name: PR Labeler
@@ -24,5 +23,5 @@ jobs:
       - name: Add labels to PR
         uses: actions/labeler@v5
         with:
-          repo-token: ${{ secrets.PAT_TOKEN }}
+          repo-token: ${{ github.token }}
           configuration-path: .github/labeler.yml

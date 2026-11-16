@@ -5,6 +5,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [Unreleased]
+
+### Segurança
+
+- Protege todas as consultas da API e o painel, preservando Bearer dos agents; painel e API aceitam Basic (usuário `monitor`, senha igual ao token).
+- Recusa token vazio por padrão e compara hashes de token em tempo constante. Modo `--insecure-dev` explícito limita listener e clientes ao loopback.
+- Remove manutenção mensal com commit/push e aprovação/merge automáticos; housekeeping usa `github.token`. Dependabot, CI, CodeQL e release permanecem.
+
 ## [1.2.0](https://github.com/guilhermejansen/monitor-infra/compare/v1.1.1...v1.2.0) (2025-12-12)
 
 

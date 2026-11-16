@@ -63,6 +63,33 @@ curl -sSL https://seu-servidor/install.sh | bash -s -- \
 
 ## Configuração
 
+### Autenticação e migração
+
+O servidor agora exige `AUTH_TOKEN` (ou `--token`) não vazio e recusa iniciar sem
+esse valor. Todas as rotas `/api/*`, incluindo o health check, e o painel `/`
+exigem autenticação. Configure um token aleatório longo no servidor e o mesmo
+valor em cada agent. Use HTTPS na rede: Bearer e Basic não cifram credenciais.
+
+A API aceita `Authorization: Bearer <token>`; o envio dos agents mantém o mesmo
+contrato. Ao abrir o painel, o navegador solicita Basic Auth: usuário `monitor`,
+senha igual a `AUTH_TOKEN`. A API também aceita esse Basic somente para GET/HEAD nas consultas
+same-origin do painel. Não coloque o token na URL. O navegador pode manter a
+credencial Basic em cache; feche a sessão do navegador ao terminar num computador
+compartilhado. Respostas protegidas usam `Cache-Control: no-store`.
+
+Quem operava sem token deve configurar o segredo no servidor **e em todos os
+agents** antes de reiniciar. Atualize probes de `/api/health` e consumidores de
+GET para enviar Bearer. Consultas sem credencial recebem 401. Os endpoints de
+instalação `/install.sh` e de binários `/download/*` continuam públicos, sem
+acesso às métricas.
+
+Para desenvolvimento estritamente local, `./server --insecure-dev` desativa a
+autenticação e vincula o listener a `127.0.0.1`. O middleware também recusa clientes
+fora do loopback nesse modo e ignora headers de proxy como prova de origem.
+**Não publique esse modo por proxy, túnel ou encaminhamento de portas**: conexões
+encaminhadas por um proxy local parecem locais ao processo. Não existe opt-out
+automático quando o token está vazio; espaços em branco também são recusados.
+
 ### Variáveis de Ambiente (Server)
 
 | Variável | Descrição | Padrão |
@@ -81,6 +108,7 @@ Flags:
   --db        Caminho do banco SQLite (default: ./data/monitor.db)
   --token     Token de autenticação
   --retention Dias de retenção (default: 90)
+  --insecure-dev Sem autenticação, somente listener/cliente loopback (default: false)
 ```
 
 ### Parâmetros CLI (Agent)
@@ -108,7 +136,7 @@ Flags:
 | POST | `/api/metrics` | Receber métricas (requer token) |
 | GET | `/api/machines` | Listar máquinas (requer token) |
 | GET | `/api/machines/:id` | Detalhes de uma máquina |
-| GET | `/api/machines/:id/history` | Histórico de métricas |
+| GET | `/api/machines/:id/metrics` | Histórico de métricas |
 | GET | `/api/stats` | Estatísticas gerais |
 | GET | `/install.sh` | Script de instalação |
 | GET | `/download/agent-linux-{arch}` | Download do agent |
